@@ -49,7 +49,7 @@ Write-Host -ForegroundColor Yellow "`t* Email Address for sample SQL Threat Dete
 ##########################################################################################################################################################################
 
         # Resource Group Name for example deployment
-        $resourceGroupName = "ContosoPCI-BP"
+        $resourceGroupName = "ContosoPCI-BP-$(Get-Date -format filedate)-$(((Get-Date).ToUniversalTime()).ToString('HHmm'))"
 
         # Provide Subscription ID that will be used for deployment
         Write-Host -ForegroundColor Yellow " Azure Subscription ID associated to the Global Administrator account for deploying this solution." 
@@ -118,8 +118,6 @@ function loginToAzureRM {
 		} 
         else {
 			Write-Host -ForegroundColor Magenta "`t-> Credentials input are incorrect, invalid, or exceed the maximum number of retries. Verify the correct Azure account information is being used."
-			Write-Host -ForegroundColor Yellow "                                    Press any key to exit..."
-			$x = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 			Exit
 		}
 	}
@@ -151,8 +149,6 @@ function loginToAzureAD {
 		} 
         else {
 			Write-Host -ForegroundColor Magenta "`t-> Credentials input are incorrect, invalid, or exceed the maximum number of retries. Verify the correct Azure account information is being used."
-			Write-Host -ForegroundColor Yellow "                                    Press any key to exit..."
-			$x = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 			Exit
 		}
 	}
@@ -167,7 +163,7 @@ try {
 }
 catch {
     Write-Host -ForegroundColor Magenta "`t-> Azure login attempts failed. Verify your user credentials before running the deployment script again."
-    Break
+    Exit
 }
 
 # Setting Azure AD Domain Name
@@ -180,7 +176,7 @@ if ($azureADDomainName -match ".onmicrosoft.com") {Write-Host -ForegroundColor G
 else {
     Write-Host -ForegroundColor Magenta "`n Azure Active Directory user is not a primary member of $azureAdDomainName."
     Write-Host -ForegroundColor Magenta "`t-> Verify an Azure Active Directory Global Administrator associated to a *.onmicrosoft.com domain is used and run this script again." 
-    Break
+    Exit
 }
 
 ##########################################################################################################################################################################
@@ -204,7 +200,7 @@ Write-Host -ForegroundColor Green "`n###############################         Dep
     Write-Host -ForegroundColor Yellow "`t* Checking AzureRM context version."
     if ((get-command get-azurermcontext).version -le "3.0"){
         Write-Host -ForegroundColor Magenta "`n This script requires PowerShell 3.0 or greater to run."
-        Break
+        Exit
     }
 
     ########### Manage directories ###########
@@ -318,7 +314,7 @@ Write-Host -ForegroundColor Green "`n###############################         Dep
     }
     catch {
         Write-Host -ForegroundColor Magenta "`t-> Could not register the necessary resource providers. Verify the correct PowerShell modules are available in the session before attempting to run the script again."
-        Break
+        Exit    
     }
     
     try {
@@ -352,7 +348,7 @@ Write-Host -ForegroundColor Green "`n###############################         Dep
     }
     catch {
         Write-Host -ForegroundColor Magenta "`t-> Could not create an artifacts storage account for storing configuration resources. Remove any previously created assets before attempting to run the script again."
-        Break
+        Exit
     }
 
     try {
@@ -402,7 +398,7 @@ Write-Host -ForegroundColor Green "`n###############################         Dep
     }
     catch {
         Write-Host -ForegroundColor Magenta "`t-> Could not create necessary Azure Active Directory users for supporting the deployment. Remove any previously created assets before attempting to run the script again." 
-        Break
+        Exit
     }
 
     try {
@@ -437,7 +433,7 @@ Write-Host -ForegroundColor Green "`n###############################         Dep
     }
     catch {
         Write-Host -ForegroundColor Magenta "`t-> Could not create the Azure Active Directory application for supporting the deployment. Remove any previously created assets before attempting to run the script again." 
-        Break
+        Exit
     }
 
     try {
@@ -464,7 +460,7 @@ Write-Host -ForegroundColor Green "`n###############################         Dep
     }
     catch {
         Write-Host -ForegroundColor Magenta "`t-> Could not create the self-signed certificates for supporting the deployment. Remove any previously created assets before attempting to run the script again." 
-        Break
+        Exit
     }
 
     # Create Resource group, Automation account, RunAs Account for Runbook.
@@ -472,14 +468,14 @@ Write-Host -ForegroundColor Green "`n###############################         Dep
         Write-Host -ForegroundColor Green "`n Step 6: Preparing to deploy the ARM templates"
         # Create Resource Group
         Write-Host -ForegroundColor Yellow "`t* Creating a new Resource group - $resourceGroupName at $location."
+        Write-Host -ForegroundColor Yellow "`t* Azure Resource group name is '$ResourceGroupName' for this deployment."
         New-AzureRmResourceGroup -Name $resourceGroupName -location $location -Force | Out-Null
         Write-Host -ForegroundColor Cyan "`t`t-> Resource group - $resourceGroupName has been created successfully."
         Start-Sleep -Seconds 5
     }
-
     catch {
         Write-Host -ForegroundColor Magenta "`t-> Could not create the Azure Resource group for the deployment. Remove any previously created assets before attempting to run the script again." 
-        Break
+        Exit
     }
 
     # Initiate template deployment
@@ -539,7 +535,7 @@ Write-Host -ForegroundColor Green "`n###############################         Dep
     }
     catch {
         Write-Host -ForegroundColor Magenta "`t-> Deployment failed at a templated step. Review the error in the Azure portal. Before redeploying, remove any previously created assets and attempt the deployment again."
-        Break
+        Exit
     }
 
     # Loop to check SQL server deployment.
@@ -569,7 +565,7 @@ Write-Host -ForegroundColor Green "`n###############################         Dep
     }
     catch {
         Write-Host -ForegroundColor Magenta "`t-> ARM template submission for 'deploy-SQLServerSQLDb' has failed. Please resolve any reported errors through the portal, and attempt to redeploy the solution."
-        Break
+        Exit
     }
 
     # Updating SQL server firewall rule
@@ -586,7 +582,7 @@ Write-Host -ForegroundColor Green "`n###############################         Dep
     }
     catch {
         Write-Host -ForegroundColor Magenta "`t-> Could not update SQL server firewall rules. Please resolve any reported errors through the portal, and attempt to redeploy the solution."   
-        Break
+        Exit
     }
 
     # Import SQL bacpac and update Azure SQL DB Data masking policy
@@ -596,7 +592,7 @@ Write-Host -ForegroundColor Green "`n###############################         Dep
         Write-Host -ForegroundColor Yellow "`t* Getting the Key Vault resource object."
         $keyVaultName = ($allResource | ? ResourceType -eq 'Microsoft.KeyVault/vaults').ResourceName
         # Importing bacpac file
-        Write-Host -ForegroundColor Yellow ("`t* Importing the SQL backpac from the artifacts storage account." ) 
+        Write-Host -ForegroundColor Yellow ("`t* Importing the SQL bacpac from the artifacts storage account." ) 
         New-AzureRmSqlDatabaseImport -ResourceGroupName $resourceGroupName -ServerName $sqlServerName -DatabaseName $databaseName -StorageKeytype $artifactsStorageAccKeyType -StorageKey $artifactsStorageAccKey -StorageUri $sqlBacpacUri -AdministratorLogin 'sqladmin' -AdministratorLoginPassword $secNewPasswd -Edition Standard -ServiceObjectiveName S0 -DatabaseMaxSizeBytes 50000 | Out-Null
         Start-Sleep -s 100
         Write-Host -ForegroundColor Yellow ("`t* Updating Azure SQL DB Data Masking policy on the FirstName & LastName columns." )
@@ -607,7 +603,7 @@ Write-Host -ForegroundColor Green "`n###############################         Dep
     }
     catch {
         Write-Host -ForegroundColor Magenta "`t-> Could not import the SQL bacpac and update the Azure SQL DB Data Masking policy. Please resolve any reported errors through the portal, and attempt to redeploy the solution."   
-        Break
+        Exit
     }
     
     # Add an Azure Active Directory administrator for SQL
@@ -618,26 +614,31 @@ Write-Host -ForegroundColor Green "`n###############################         Dep
     }
     catch {
         Write-Host -ForegroundColor Magenta "`t-> Could not grant SQL administrative rights. Please resolve any reported errors through the portal, and attempt to redeploy the solution."   
-        Break
+        Exit
     }
 
     # Encrypting Credit card information within database
     try {
-        Write-Host ("`n Step 11: Encrypt the SQL DB credit card information column" ) -ForegroundColor Green
-        # Connect to your database.
-        Add-Type -Path $sqlsmodll
-        Write-Host -ForegroundColor Yellow "`t* Connecting to database - $databaseName on $sqlServerName."
-        $connStr = "Server=tcp:" + $sqlServerName + ".database.windows.net,1433;Initial Catalog=" + "`"" + $databaseName + "`"" + ";Persist Security Info=False;User ID=" + "`"" + "sqladmin" + "`"" + ";Password=`"" + "$newPassword" + "`"" + ";MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
-        $connection = New-Object Microsoft.SqlServer.Management.Common.ServerConnection
-        $connection.ConnectionString = $connStr
-        $connection.Connect()
-        $server = New-Object Microsoft.SqlServer.Management.Smo.Server($connection)
-        $database = $server.Databases[$databaseName]
-        Write-Host -ForegroundColor Cyan "`t`t-> Connected to database - $databaseName on $sqlServerName."
+        Write-Host -ForegroundColor Green ("`n Step 11: Encrypt the SQL DB credit card information column")
 
+        # Connect to your database.
+        do {
+            Add-Type -Path $sqlsmodll
+            Write-Host -ForegroundColor Yellow "`t* Connecting to database - $databaseName on $sqlServerName."
+            $connStr = "Server=tcp:" + $sqlServerName + ".database.windows.net,1433;Initial Catalog=" + "`"" + $databaseName + "`"" + ";Persist Security Info=False;User ID=" + "`"" + "sqladmin" + "`"" + ";Password=`"" + "$newPassword" + "`"" + ";MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+            $connection = New-Object Microsoft.SqlServer.Management.Common.ServerConnection
+            $connection.ConnectionString = $connStr
+            $connection.Connect()
+            Start-Sleep -seconds 30
+            $server = New-Object Microsoft.SqlServer.Management.Smo.Server($connection)
+            $database = $server.Databases[$databaseName]
+            Write-Host -ForegroundColor Cyan "`t`t-> Connected to database - $databaseName on $sqlServerName."
+        }
+        until ($database.Name -eq 'ContosoPayments')
+ 
         # Granting Users & ServicePrincipal full access on Keyvault
         Write-Host -ForegroundColor Yellow ("`t* Granting Key Vault access permissions to users and service principals.") 
-        Set-AzureRmKeyVaultAccessPolicy -VaultName $KeyVaultName -UserPrincipalName $userPrincipalName -ResourceGroupName $resourceGroupName -PermissionsToKeys all  -PermissionsToSecrets all
+        Set-AzureRmKeyVaultAccessPolicy -VaultName $KeyVaultName -UserPrincipalName $userPrincipalName -ResourceGroupName $resourceGroupName -PermissionsToKeys all -PermissionsToSecrets all
         Set-AzureRmKeyVaultAccessPolicy -VaultName $KeyVaultName -UserPrincipalName $SqlAdAdminUserName -ResourceGroupName $resourceGroupName -PermissionsToKeys all -PermissionsToSecrets all 
         Set-AzureRmKeyVaultAccessPolicy -VaultName $KeyVaultName -ServicePrincipalName $azureAdApplicationClientId -ResourceGroupName $resourceGroupName -PermissionsToKeys all -PermissionsToSecrets all
         Write-Host -ForegroundColor Cyan ("`t`t-> Granted permissions to users and serviceprincipals.") 
@@ -658,7 +659,7 @@ Write-Host -ForegroundColor Green "`n###############################         Dep
             }
             catch {
                 Write-Host -ForegroundColor Magenta "`t-> Could not create a new SQL Column Master Key. Please verify deployment details, remove any previously deployed assets specific to this example, and attempt a new deployment."
-                break
+                Exit
             }
         }
         Add-SqlAzureAuthenticationContext -ClientID $azureAdApplicationClientId -Secret $newPassword -Tenant $tenantID
@@ -668,7 +669,7 @@ Write-Host -ForegroundColor Green "`n###############################         Dep
         }
         catch {
             Write-Host -ForegroundColor Magenta "`t-> Could not create a new SQL Column Encryption Key. Please verify deployment details, remove any previously deployed assets specific to this example, and attempt a new deployment."
-            break
+            Exit
         }
 
         Write-Host -ForegroundColor Cyan "`t* SQL encryption has been successfully created."
@@ -685,7 +686,7 @@ Write-Host -ForegroundColor Green "`n###############################         Dep
     catch {
         Write-Host -ForegroundColor Magenta "`t-> Column encryption has failed."
         Write-Host -ForegroundColor Magenta "`t-> Could not successfully encrypt SQL columns. Please verify deployment details, remove any previously deployed assets specific to this example, and attempt a new deployment."
-        Break
+        Exit
     }
 
     # Enabling the Azure Security Center Policies.
@@ -769,7 +770,7 @@ Write-Host -ForegroundColor Green "`n###############################         Dep
     }
     catch {
         Write-Host -ForegroundColor Magenta "`t-> Could not set policies for Azure Security Center. Please verify deployment details, remove any previously deployed assets specific to this example, and attempt a new deployment."
-        Break
+        Exit
     }
 
 #########################################################################################################################################################################################

@@ -20,7 +20,17 @@ This PowerShell script is used to deploy this Blueprint.
 
 The estimated time to deploy the solution components is shown in the diagram below. The total time required is approximately 2.0-2.5 hours from when the script starts. If the App Service Environment takes greater than 2 hours to deploy, the deployment may time out. 
 
-## Example 1: Simple deployment 
+# Using the script
+
+The following scenarios are supported by the script:
+- Simple deployment.
+    - This scenario is intended for users that want to deploy a pilot production environment using the deployment solution defaults. This will be set up and deployed using a self-signed certificate. This solution is intended to serve as a base for building a production environment for web applications specific to payment processing. 
+- Deploying with a custom certificate and a custom domain
+    - This scenario is intended for users that would like to utilize their existing domain and associated SSL certificate for deploying a pilot production environment. This solution is intended to serve as a base with a custom domain for building a production environment for web applications specific to payment processing.  
+
+> NOTE: The deployment script is a guided solution that will prompt for additional inputs if further customization is required. The 'Optional Parameters' section outlines the customization options available for this deployment. 
+
+## Simple deployment 
     
 ```powershell
 .\1-DeployAndConfigureAzureResources.ps1 
@@ -29,7 +39,7 @@ The estimated time to deploy the solution components is shown in the diagram bel
 This deployment script creates the required Azure Active Directory (AAD) accounts and generates a self-signed certificate for the ASE ILB and Application Gateway SSL endpoint using a provided custom domain.
 Users will be prompted for two logins, one for Azure Active Directory (AAD) and another for Azure Resource Manager (ARM). The only required inputs are guided prompts for providing an email address for SQL Threat Detection alerts and an Azure Subscription ID. 
 
-## Example 2: Deploy with custom certificate and custom domain, and set password policy
+## Deploying with a custom certificate and a custom domain
 
 ```powershell
 .\1-DeployAndConfigureAzureResources.ps1
