@@ -1,3 +1,6 @@
+## NOTE: This content is no longer being maintained or supported.
+Please see updated blueprints here: [https://docs.microsoft.com/en-us/azure/governance/blueprints/samples/](https://docs.microsoft.com/en-us/azure/governance/blueprints/samples/)
+
 # Azure Solution Blueprint - Payment processing solution for PCI DSS enablement 
 
 
